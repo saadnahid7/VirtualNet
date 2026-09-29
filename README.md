@@ -20,6 +20,8 @@ Real traffic is untouched. VirtualNet only changes the answers apps get when the
 | `TelephonyManager` | network type, data network type, data state, `isDataEnabled` |
 | `java.net.NetworkInterface` | interface list, names, IPv4 address |
 | `Settings.Global` | `wifi_on`, `mobile_data` |
+| Sockets | local address of TCP and UDP sockets (`IoBridge`), so the real interface IP does not leak |
+| Wi-Fi scan results | fake network added in Wi-Fi and Both, empty in Data |
 
 One editable profile (SSID, router MAC, local IP and prefix, gateway, DNS, signal, link speed, frequency, mobile type,
 mobile interface and IP) keeps every answer consistent, so an app that checks the IP range sees the range you chose.
@@ -49,9 +51,9 @@ Changes take effect without a reboot. An app that already read the state keeps w
 
 ## Limits
 
-- Anything that bypasses the Java framework sees the real network: raw sockets, `/proc/net/*`, native code, server-side IP checks.
+- Anything that bypasses the Java framework sees the real network: raw sockets, native code, server-side IP checks. `/proc/net/*` is blocked for normal apps on Android 10+ but readable for apps targeting old SDKs, and is not spoofed.
 - Apps that verify with latency, public IP or carrier attestation can still tell.
-- `Both` mode fabricates the second network only in the legacy and telephony answers; `getAllNetworks()` still lists real networks.
+- `Both` mode adds a stand-in cellular `Network` when the device has none. Callbacks registered for a cellular request do not fire for it.
 - System-wide indicators (status bar, quick settings) are unchanged.
 
 ## Build
