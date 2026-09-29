@@ -7,6 +7,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkInfo
 import android.net.NetworkRequest
+import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Message
 import android.os.Process
@@ -19,6 +20,7 @@ import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Modifier
 import java.net.Inet4Address
 import java.net.InetAddress
+import java.net.InterfaceAddress
 import java.net.NetworkInterface
 import java.util.Collections
 import java.util.WeakHashMap
@@ -33,6 +35,8 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
     private val logged = ConcurrentHashMap.newKeySet<String>()
     private val renamed = Collections.synchronizedMap(WeakHashMap<NetworkInterface, String>())
     @Volatile private var cm: ConnectivityManager? = null
+    /** A stand-in cellular Network handed out in BOTH mode when the device has no real cellular network. */
+    @Volatile private var fakeCell: Network? = null
 
     private fun log(what: String, t: Throwable? = null) {
         if (logged.add(what)) m.log(Log.WARN, TAG, "[${s.pkg}:${Process.myPid()}] $what", t)
@@ -86,6 +90,7 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
         after(cmc, "getActiveNetworkInfo") { c, o, mode -> activeInfo(c, o, mode) }
         after(cmc, "getNetworkInfo") { c, o, mode -> networkInfo(c, o, mode) }
         after(cmc, "getAllNetworkInfo") { c, o, mode -> allInfo(c, o, mode) }
+        after(cmc, "getAllNetworks") { c, o, mode -> allNetworks(c, o, mode) }
         after(cmc, "isActiveNetworkMetered") { _, _, mode -> mode == Mode.DATA }
         after(cmc, "getNetworkCapabilities") { c, o, mode -> caps(c, o, mode) }
         after(cmc, "getLinkProperties") { c, o, mode -> linkProps(c, o, mode) }
@@ -99,6 +104,7 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
         after(wm, "isWifiEnabled") { _, _, mode -> mode.wifi }
         after(wm, "getWifiState") { _, _, mode -> if (mode.wifi) WifiManager.WIFI_STATE_ENABLED else WifiManager.WIFI_STATE_DISABLED }
         after(wm, "getConnectionInfo") { _, _, mode -> if (mode.wifi) Shape.wifiInfo(s.profile()) else Shape.blankWifiInfo() }
+        after(wm, "getScanResults") { _, o, mode -> scan(o, mode) }
         after(wm, "getDhcpInfo") { _, _, mode -> Shape.dhcp(mode.wifi, s.profile()) }
 
         val tm = TelephonyManager::class.java
@@ -111,11 +117,16 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
         val global = runCatching { Class.forName("android.provider.Settings\$Global") }.getOrNull()
         after(global, "getInt") { c, o, mode -> setting(c, o, mode) }
 
+        val io = runCatching { Class.forName("libcore.io.IoBridge") }.getOrNull()
+        after(io, "getSocketLocalAddress") { _, o, mode -> localAddress(o, mode) }
+        after(io, "getSocketOption") { c, o, mode -> if (c.args.getOrNull(1) == SO_BINDADDR) localAddress(o, mode) else o }
+
         val ni = NetworkInterface::class.java
         after(ni, "getNetworkInterfaces") { _, o, mode -> interfaces(o, mode) }
         after(ni, "getName") { c, o, _ -> renamed[c.thisObject as NetworkInterface] ?: o }
         after(ni, "getDisplayName") { c, o, _ -> renamed[c.thisObject as NetworkInterface] ?: o }
         after(ni, "getInetAddresses") { c, o, mode -> addresses(c.thisObject as NetworkInterface, o, mode) }
+        after(ni, "getInterfaceAddresses") { c, o, mode -> interfaceAddresses(c.thisObject as NetworkInterface, o, mode) }
         after(ni, "getByName") { c, o, _ ->
             val want = c.args[0] as? String
             synchronized(renamed) { renamed.entries.firstOrNull { it.value == want }?.key } ?: o
@@ -147,8 +158,10 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
             Shape.netInfo(ni, arg, if (arg == Shape.WIFI) mode.wifi else mode.cell, s.profile())
             return ni
         }
-        val ni = orig as? NetworkInfo ?: return orig
-        Shape.netInfo(ni, primaryType(mode), true, s.profile())
+        val isFake = arg == fakeCell
+        val type = if (isFake) Shape.CELL else primaryType(mode)
+        val ni = (orig as? NetworkInfo) ?: (if (isFake) Shape.newNetInfo(type) else null) ?: return orig
+        Shape.netInfo(ni, type, true, s.profile())
         return ni
     }
 
@@ -179,6 +192,11 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
 
     private fun caps(c: Chain, orig: Any?, mode: Mode): Any? {
         remember(c)
+        if (orig == null && c.args[0] == fakeCell) {
+            val fresh = Refl.new(NetworkCapabilities::class.java) as? NetworkCapabilities ?: return orig
+            Shape.caps(fresh, Shape.CELL, s.profile())
+            return fresh
+        }
         val nc = orig as? NetworkCapabilities ?: return orig
         Shape.caps(nc, kindFor(mode, nc, c.args[0] as? Network), s.profile())
         return nc
@@ -186,6 +204,11 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
 
     private fun linkProps(c: Chain, orig: Any?, mode: Mode): Any? {
         remember(c)
+        if (orig == null && c.args[0] == fakeCell) {
+            val fresh = Refl.new(LinkProperties::class.java) as? LinkProperties ?: return orig
+            Shape.link(fresh, Shape.CELL, s.profile())
+            return fresh
+        }
         val lp = orig as? LinkProperties ?: return orig
         val manager = c.thisObject as ConnectivityManager
         val nc = manager.getNetworkCapabilities(c.args[0] as? Network) // already shaped by our hook
@@ -233,6 +256,49 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
             Shape.link(lp, kind, s.profile())
             data.putParcelable("LinkProperties", lp)
         }
+    }
+
+    /** BOTH: make sure the app can enumerate a cellular network even when the device only has Wi-Fi (or the reverse). */
+    private fun allNetworks(c: Chain, orig: Any?, mode: Mode): Any? {
+        remember(c)
+        if (mode != Mode.BOTH) return orig
+        @Suppress("UNCHECKED_CAST")
+        val all = orig as? Array<Network> ?: return orig
+        val manager = c.thisObject as ConnectivityManager
+        val hasCell = all.any { n -> manager.getNetworkCapabilities(n)?.let { Shape.transport(it, Shape.CELL) } == true }
+        if (hasCell) return all
+        val fake = fakeCell ?: runCatching {
+            Network::class.java.getDeclaredConstructor(Int::class.javaPrimitiveType).apply { isAccessible = true }.newInstance(FAKE_NET_ID)
+        }.getOrNull()?.also { fakeCell = it } ?: return all
+        return all + fake
+    }
+
+    // ---- Wi-Fi scan results -------------------------------------------------------------
+
+    private fun scan(orig: Any?, mode: Mode): Any? {
+        if (!mode.wifi) return ArrayList<ScanResult>()
+        @Suppress("UNCHECKED_CAST")
+        val real = (orig as? List<ScanResult>) ?: return orig
+        val p = s.profile()
+        if (real.any { it.BSSID.equals(p.bssid, true) }) return orig
+        val r = Refl.new(ScanResult::class.java) as? ScanResult ?: return orig
+        r.SSID = p.ssid
+        r.BSSID = p.bssid
+        r.level = p.rssi
+        r.frequency = p.frequency
+        r.capabilities = "[WPA2-PSK-CCMP][RSN-PSK-CCMP][ESS]"
+        r.timestamp = android.os.SystemClock.elapsedRealtime() * 1000
+        return ArrayList<ScanResult>(real.size + 1).also { it.add(r); it.addAll(real) }
+    }
+
+    // ---- Sockets ------------------------------------------------------------------------
+
+    /** The address a connected socket reports as its own, which would otherwise expose the real interface IP. */
+    private fun localAddress(orig: Any?, mode: Mode): Any? {
+        val a = orig as? Inet4Address ?: return orig
+        if (a.isLoopbackAddress || a.isAnyLocalAddress || a.isLinkLocalAddress) return orig
+        val p = s.profile()
+        return Shape.v4(if (mode == Mode.DATA) p.mobileIp else p.ip) ?: orig
     }
 
     // ---- Settings -----------------------------------------------------------------------
@@ -290,7 +356,25 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
         return Collections.enumeration(listOf<InetAddress>(fake) + rest)
     }
 
+    @Suppress("UNCHECKED_CAST")
+    private fun interfaceAddresses(i: NetworkInterface, orig: Any?, mode: Mode): Any? {
+        val name = renamed[i] ?: return orig
+        val src = orig as? List<InterfaceAddress> ?: return orig
+        val p = s.profile()
+        val wifi = name == "wlan0"
+        val fake = Shape.v4(if (wifi) p.ip else p.mobileIp) ?: return orig
+        val entry = runCatching {
+            val k = InterfaceAddress::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance()
+            Refl.set(k, "address", fake)
+            Refl.set(k, "maskLength", (if (wifi) p.prefix else 30).toShort())
+            k
+        }.getOrNull() ?: return orig
+        return listOf(entry) + src.filter { it.address !is Inet4Address }
+    }
+
     companion object {
         private const val TAG = "VirtualNet"
+        private const val SO_BINDADDR = 0x0F
+        private const val FAKE_NET_ID = 9998
     }
 }

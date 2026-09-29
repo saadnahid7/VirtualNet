@@ -49,6 +49,7 @@ class LabActivity : Activity() {
     private var callbacksRegistered = false
     private var httpResult = "not run"
     private var udpResult = "not run"
+    private var tcpResult = "not run"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -171,8 +172,28 @@ class LabActivity : Activity() {
         probe(s6, "Global wifi_on", { if (Settings.Global.getInt(contentResolver, "wifi_on", -1) == 1) "WIFI" else "" }) { Settings.Global.getInt(contentResolver, "wifi_on", -1).toString() }
         probe(s6, "Global mobile_data", { if (Settings.Global.getInt(contentResolver, "mobile_data", -1) == 1) "CELL" else "" }) { Settings.Global.getInt(contentResolver, "mobile_data", -1).toString() }
 
+        val s8 = "Socket routes"
+        probe(s8, "UDP local address") { udpResult }
+        probe(s8, "TCP local address") { tcpResult }
+
+        val s9 = "More interface / Wi-Fi routes"
+        probe(s9, "getAllNetworks count") { cm.allNetworks.size.toString() }
+        probe(s9, "interfaceAddresses") {
+            Collections.list(NetworkInterface.getNetworkInterfaces()).filter { it.isUp && !it.isLoopback }.joinToString(" ; ") { i ->
+                "${i.name}: " + i.interfaceAddresses.filter { it.address is Inet4Address }.joinToString { "${it.address.hostAddress}/${it.networkPrefixLength}" }
+            }
+        }
+        probe(s9, "getByName(wlan0)") { NetworkInterface.getByName("wlan0")?.let { "${it.name} up=${it.isUp}" } ?: "null" }
+        probe(s9, "scanResults") {
+            @Suppress("DEPRECATION")
+            val r = wm.scanResults
+            "${r.size}: " + r.take(3).joinToString { "${it.SSID}@${it.BSSID} ${it.level}dBm" }
+        }
+        probe(s9, "/proc/net/dev") { File("/proc/net/dev").readLines().drop(2).joinToString(" ") { it.substringBefore(":").trim() } }
+        probe(s9, "/proc/net/if_inet6") { File("/proc/net/if_inet6").readLines().joinToString(" ") { it.trim().split(" ").last() } }
+        probe(s9, "/sys/class/net") { File("/sys/class/net").list()?.sorted()?.joinToString(" ") ?: "null" }
+
         val s7 = "Real path (not hookable from Java)"
-        probe(s7, "UDP local address") { udpResult }
         probe(s7, "/proc/net/route default iface") {
             File("/proc/net/route").readLines().drop(1).map { it.split(Regex("\\s+")) }.firstOrNull { it.size > 2 && it[1] == "00000000" }?.get(0) ?: "n/a"
         }
@@ -190,7 +211,13 @@ class LabActivity : Activity() {
             } catch (t: Throwable) {
                 "ERR ${t.javaClass.simpleName}"
             }
-            Log.i("VNL", "Real path (not hookable from Java)|UDP local address|$udpResult|")
+            Log.i("VNL", "Socket routes|UDP local address|$udpResult|")
+            tcpResult = try {
+                java.net.Socket().use { it.connect(java.net.InetSocketAddress("1.1.1.1", 443), 4000); "${it.localAddress.hostAddress} / ${it.localSocketAddress}" }
+            } catch (t: Throwable) {
+                "ERR ${t.javaClass.simpleName}"
+            }
+            Log.i("VNL", "Socket routes|TCP local address|$tcpResult|")
             val t0 = System.nanoTime()
             httpResult = try {
                 val c = URL("https://connectivitycheck.gstatic.com/generate_204").openConnection() as java.net.HttpURLConnection
