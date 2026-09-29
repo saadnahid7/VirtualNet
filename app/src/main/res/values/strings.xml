@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VirtualNet</string>
+    <string name="app_desc">Choose, per app, whether it sees Wi-Fi, mobile data, or both.</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="vn_bg">#0E1115</color>
+    <color name="vn_surface">#171B21</color>
+    <color name="vn_text">#E8EBF0</color>
+    <color name="vn_muted">#95A0AD</color>
+    <color name="vn_line">#262C35</color>
+    <color name="vn_accent">#7DA2FF</color>
+    <color name="vn_accent_bg">#1E2A4A</color>
+    <color name="vn_ok">#5FD3A2</color>
+    <color name="vn_ok_bg">#12352A</color>
+    <color name="vn_warn">#F2BE62</color>
+    <color name="vn_warn_bg">#3A2B0E</color>
+</resources>
