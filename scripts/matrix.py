@@ -22,9 +22,13 @@ def adb(*a, timeout=120, check=False):
 def sh(cmd, timeout=120):
     return adb("shell", cmd, timeout=timeout)
 
+ROOT = {"direct": False}
+
 def su(cmd, timeout=120):
-    # adbd runs as root after `adb root`, so no su wrapper (and no Magisk prompt) is involved.
-    return sh(cmd, timeout=timeout)
+    # userdebug images answer as root after `adb root`; production images only have Magisk su.
+    if ROOT["direct"]:
+        return sh(cmd, timeout=timeout)
+    return sh(f"su -c '{cmd}'", timeout=timeout)
 
 def step(msg):
     print(time.strftime("%H:%M:%S"), msg, flush=True)
@@ -33,7 +37,12 @@ def go_root():
     subprocess.run([ADB, "-s", SER, "root"], capture_output=True, text=True, timeout=60)
     time.sleep(3)
     subprocess.run([ADB, "-s", SER, "wait-for-device"], capture_output=True, text=True, timeout=120)
-    time.sleep(2)
+    for _ in range(20):  # adbd restarts as root; wait until it really answers as root
+        if "uid=0" in sh("id"):
+            ROOT["direct"] = True
+            return
+        time.sleep(1.5)
+    ROOT["direct"] = False
 
 def qemu_running():
     r = subprocess.run(["tasklist"], capture_output=True, text=True).stdout
@@ -161,7 +170,7 @@ def run_api(api):
     go_root()
     if "uid=0" not in su("id"):
         res["notes"].append("no root"); kill(); return res
-    if not sh(f"ls {CLI}").strip().startswith("/"):
+    if not su(f"ls {CLI}").strip().startswith("/"):
         res["notes"].append("no vector"); kill(); return res
     for apk in (APP, LAB):
         adb("install", "-r", "-g", apk, timeout=180)

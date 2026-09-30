@@ -6,18 +6,19 @@ Each row is one device, one Android build, one framework version. A result appli
 
 Pass means the Lab agrees with the mode on: legacy network info, capabilities and transport, metered flag, `WifiManager` state and IP, telephony type (Data, Both), and the latest default-network callback. Off must leak nothing.
 
-| Device | API | Framework | wifi | data | both | off |
-|---|---|---|---|---|---|---|
-| Emulator google_apis x86_64 | 28 | Vector 2.2 debug | n/a | n/a | n/a | n/a |
-| Emulator google_apis x86_64 | 29 | Vector 2.2 debug | pass | pass | pass | pass |
-| Emulator google_apis x86_64 | 30 | Vector 2.2 debug | pass | pass | pass | pass |
-| Emulator google_apis x86_64 | 31 | Vector 2.2 debug | pass | pass | pass | pass |
-| Emulator google_apis x86_64 | 33 | Vector 2.2 debug | pass | pass | pass | pass |
-| Emulator google_apis x86_64 | 34 | Vector 2.2 debug | pass | pass | pass | pass |
-| Emulator google_apis x86_64 | 35 | Vector 2.2 debug | pass | pass | pass | pass |
-| Emulator google_apis x86_64 | 36 | Vector 2.2 debug | pass | pass | pass | pass |
-| Emulator google_apis x86_64 | 37 | Vector 2.2 debug | pass | pass | pass | pass |
-| Poco X3 Pro, LineageOS | 35 | Vector 2.2 | pass | pass | pass | pass |
+| Device | API | Framework | System layer (wifi/data/both/off) | Apps-only layer |
+|---|---|---|---|---|
+| Emulator google_apis x86_64 | 29 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
+| Emulator google_apis x86_64 | 28 | Vector 2.2 debug | not testable | not testable |
+| Emulator google_apis x86_64 | 30 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
+| Emulator google_apis x86_64 | 31 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
+| Emulator google_apis x86_64 | 33 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
+| Emulator google_apis x86_64 | 34 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
+| Emulator google_apis x86_64 | 36 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
+| Emulator google_apis x86_64 | 37 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
+| Poco X3 Pro, LineageOS (real device) | 35 | Vector 2.2 | pass / pass / pass / pass | pass (checked earlier) |
+
+API 35 is covered by the Poco X3 Pro (Android 15) and by the earlier emulator run. The API 35 emulator image was changed outside this project (it now reports a production build without `adb root`), so it was not rerun.
 
 API 28: on this image the framework logs `Failed to inject VectorService into system_server` and `NoSuchMethodError getContentProviderExternal`. The module class loads but `onSystemServerStarting` is never called and the module app never receives the service, so nothing can be tested. Not a VirtualNet result.
 
