@@ -25,6 +25,18 @@ Two layers, both driven by the same per-app setting:
 
 One editable profile (SSID, router MAC, local IP and prefix, gateway, DNS, signal, link speed, frequency, mobile type, mobile interface and IP) keeps every answer consistent, so an app that checks the IP range sees the range you chose.
 
+## Coverage
+
+A switch on the main screen chooses which layer acts, so you can use only one:
+
+| Setting | What runs | Scope needed |
+|---|---|---|
+| System | System framework hooks only | System Framework and Phone Services |
+| Apps | Hooks inside each scoped app only | Every app you pick |
+| Both | Both layers (default) | System Framework and Phone Services, plus apps for sockets and interfaces |
+
+Android 9 defaults to Apps, because that layer does not depend on system internals that differ between releases.
+
 ## Modes
 
 | Mode | App sees |
@@ -54,7 +66,7 @@ Changes take effect without a reboot. An app that already read the state keeps w
 - Apps that verify with latency, public IP or carrier attestation can still tell.
 - `Both` mode adds a stand-in cellular `Network` (id 9998). Callbacks registered for a cellular request do not fire for it.
 - System-wide indicators (status bar, quick settings) are unchanged.
-- **Android 9 (API 28):** untested. On the Vector 2.2 lab image the framework could not inject its service into `system_server` or hand it to the module app, so no module can read settings there. This is a framework limit, not something VirtualNet can work around.
+- **Android 9 (API 28):** untested. Apps coverage is the intended path (it is the default there). On the Vector 2.2 lab image the framework could not inject its service into `system_server` or hand it to the module app, so no module could read settings at all. That is a framework limit; a real Android 9 device with a working framework is needed to test it.
 - A change in system hooks needs the framework restarted once after installing or updating the module.
 
 ## Build

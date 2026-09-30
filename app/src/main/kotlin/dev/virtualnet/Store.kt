@@ -59,6 +59,8 @@ object Store {
 
     fun mode(pkg: String) = Config.mode(local, pkg)
     fun setMode(pkg: String, mode: Mode) = edit { Config.setMode(it, pkg, mode) }
+    fun coverage() = Config.coverage(local)
+    fun setCoverage(c: Coverage) = edit { Config.setCoverage(it, c) }
     fun profile() = Config.profile(local)
     fun setProfile(p: Profile) = edit { Config.putProfile(it, p) }
 }

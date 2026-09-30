@@ -1,6 +1,7 @@
 package dev.virtualnet
 
 import android.content.SharedPreferences
+import android.os.Build
 
 /** What the target app is told about its connection. */
 enum class Mode(val key: String) {
@@ -11,6 +12,21 @@ enum class Mode(val key: String) {
 
     companion object {
         fun of(key: String?) = entries.firstOrNull { it.key == key } ?: OFF
+    }
+}
+
+/** Which layer does the work. Android 9 defaults to Apps because the system layer is untested there. */
+enum class Coverage(val key: String) {
+    SYSTEM("system"), APPS("apps"), BOTH("both");
+
+    /** System framework hooks act. */
+    val system get() = this != APPS
+    /** Hooks inside scoped apps act. */
+    val apps get() = this != SYSTEM
+
+    companion object {
+        fun default() = if (Build.VERSION.SDK_INT < 29) APPS else BOTH
+        fun of(key: String?) = entries.firstOrNull { it.key == key } ?: default()
     }
 }
 
@@ -41,6 +57,10 @@ data class Profile(
 object Config {
     const val GROUP = "virtualnet"
     private const val M = "m."
+
+    fun coverage(p: SharedPreferences) = Coverage.of(p.getString("cov", null))
+
+    fun setCoverage(e: SharedPreferences.Editor, c: Coverage) { e.putString("cov", c.key) }
 
     fun mode(p: SharedPreferences, pkg: String) = Mode.of(p.getString(M + pkg, null))
 

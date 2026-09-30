@@ -17,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
+import dev.virtualnet.Coverage
 import dev.virtualnet.Mode
 import dev.virtualnet.R
 import dev.virtualnet.Store
@@ -39,6 +40,9 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var banner: LinearLayout
     private lateinit var sysBanner: LinearLayout
+    private lateinit var coverageSeg: Segmented
+    private lateinit var coverageNote: TextView
+    private val coverages = listOf(Coverage.SYSTEM, Coverage.APPS, Coverage.BOTH)
     private lateinit var wifiTitle: TextView
     private lateinit var wifiSub: TextView
     private lateinit var cellSub: TextView
@@ -117,6 +121,15 @@ class MainActivity : Activity() {
         }
         h.addView(cell, lp(top = 8))
 
+        val cov = card().apply {
+            addView(label("Coverage", 12f, R.color.vn_muted, true))
+            coverageSeg = Segmented(context, listOf("System", "Apps", "Both")) { i -> Store.setCoverage(coverages[i]) }
+            addView(coverageSeg, lp(top = 8))
+            coverageNote = label("", 12f, R.color.vn_muted)
+            addView(coverageNote, lp(top = 8))
+        }
+        h.addView(cov, lp(top = 8))
+
         val head = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         head.addView(label("Apps", 16f, medium = true), lp(0, weight = 1f))
         systemToggle = label("Show system apps", 13f, R.color.vn_accent, true).apply {
@@ -168,7 +181,14 @@ class MainActivity : Activity() {
         status.setTextColor(color(if (live) R.color.vn_ok else R.color.vn_warn))
         status.background = shape(color(if (live) R.color.vn_ok_bg else R.color.vn_warn_bg), 99)
         banner.visibility = if (live) View.GONE else View.VISIBLE
-        sysBanner.visibility = if (live && "system" !in scope) View.VISIBLE else View.GONE
+        val cv = Store.coverage()
+        coverageSeg.selected = coverages.indexOf(cv)
+        coverageNote.text = when (cv) {
+            Coverage.SYSTEM -> "System framework only. Covers every app you pick with no per-app scope. Sockets and interface checks are not covered."
+            Coverage.APPS -> "Inside each app only. Add every app to scope in Vector or LSPosed. Works without touching the system framework."
+            Coverage.BOTH -> "System framework plus inside each scoped app. Most complete."
+        }
+        sysBanner.visibility = if (live && cv.system && "system" !in scope) View.VISIBLE else View.GONE
         systemToggle.text = if (showSystem) "Hide system apps" else "Show system apps"
     }
 
@@ -216,7 +236,11 @@ class MainActivity : Activity() {
     private fun pick(row: Row, mode: Mode) {
         Store.setMode(row.pkg, mode)
         // The system framework covers every app; only ask for a per-app scope when it is missing.
-        if (mode != Mode.OFF && Store.service != null && "system" !in scope && row.pkg !in scope) requestScope(listOf("system", "com.android.phone"))
+        val cv = Store.coverage()
+        if (mode != Mode.OFF && Store.service != null) {
+            if (cv.apps && row.pkg !in scope && (!cv.system || "system" !in scope)) requestScope(listOf(row.pkg), row.label)
+            else if (cv.system && "system" !in scope) requestScope(listOf("system", "com.android.phone"))
+        }
         adapter.notifyDataSetChanged()
     }
 
@@ -259,8 +283,10 @@ class MainActivity : Activity() {
                 ?: runCatching { packageManager.getApplicationIcon(r.pkg) }.getOrNull()?.also { icons.put(r.pkg, it) }
             icon.setImageDrawable(cached)
             val mode = Store.mode(r.pkg)
-            val needsScope = mode != Mode.OFF && Store.service != null && "system" !in scope && r.pkg !in scope
-            sub.text = if (needsScope) "Not covered. Add System Framework in Vector or LSPosed." else r.pkg
+            val cv = Store.coverage()
+            val covered = (cv.system && "system" in scope) || (cv.apps && r.pkg in scope)
+            val needsScope = mode != Mode.OFF && Store.service != null && !covered
+            sub.text = if (needsScope) (if (cv == Coverage.APPS) "Not in scope. Add it in Vector or LSPosed." else "Not covered. Add System Framework in Vector or LSPosed.") else r.pkg
             sub.setTextColor(color(if (needsScope) R.color.vn_warn else R.color.vn_muted))
             seg.selected = modes.indexOf(mode)
         }

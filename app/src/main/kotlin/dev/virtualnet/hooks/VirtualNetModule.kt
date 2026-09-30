@@ -60,7 +60,7 @@ internal class State(val pkg: String, private val prefs: SharedPreferences) {
         prefs.registerOnSharedPreferenceChangeListener(listener)
     }
 
-    fun mode(): Mode = Config.mode(prefs, pkg)
+    fun mode(): Mode = if (Config.coverage(prefs).apps) Config.mode(prefs, pkg) else Mode.OFF
 
     fun profile(): Profile = cached ?: Config.profile(prefs).also { cached = it }
 }

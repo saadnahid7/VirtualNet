@@ -29,7 +29,8 @@ internal class SysState(private val prefs: SharedPreferences, private val log: (
     /** Mode for the app that owns [uid]; system and root callers are never touched. */
     fun mode(uid: Int): Mode {
         val appId = uid % 100000
-        return if (appId < 10000) Mode.OFF else byAppId[appId] ?: Mode.OFF
+        if (appId < 10000 || !Config.coverage(prefs).system) return Mode.OFF
+        return byAppId[appId] ?: Mode.OFF
     }
 
     fun refresh(attempt: Int = 0) {
