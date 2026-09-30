@@ -4,27 +4,26 @@ Per-app network spoofing for LSPosed / Vector. Pick an app and choose what it is
 **Wi-Fi**, **mobile data**, **both**, or **off**. A phone that is only on mobile data can look like it is on Wi-Fi to one app,
 and the reverse, while every other app sees the truth.
 
-- Android 9 to 17 (API 28 to 37), libxposed API 102 (LSPosed 1.10+, Vector).
-- About 100 KB release APK. No AppCompat, no Material, no network permission.
+- Android 10 to 17 (API 29 to 37) tested, libxposed API 102 (LSPosed 1.10+, Vector). Android 9: see Limits.
+- About 120 KB release APK. No AppCompat, no Material, no network permission.
 - Developed by the Droid Rooter Team. MIT licensed.
 
-## What it changes
+## How it works
 
-Real traffic is untouched. VirtualNet only changes the answers apps get when they ask about the connection.
+Two layers, both driven by the same per-app setting:
 
-| Area | Hooked |
-|---|---|
-| `ConnectivityManager` | `getActiveNetworkInfo`, `getNetworkInfo`, `getAllNetworkInfo`, `getNetworkCapabilities`, `getLinkProperties`, `isActiveNetworkMetered` |
-| Network callbacks | Every `NetworkCallback` event (capabilities and link properties) via `CallbackHandler`; transport and NOT_METERED requirements in `registerNetworkCallback` / `requestNetwork` are relaxed so a Wi-Fi request still matches |
-| `WifiManager` | `isWifiEnabled`, `getWifiState`, `getConnectionInfo` (SSID, BSSID, IP, RSSI, speed, frequency), `getDhcpInfo` |
-| `TelephonyManager` | network type, data network type, data state, `isDataEnabled` |
-| `java.net.NetworkInterface` | interface list, names, IPv4 address |
-| `Settings.Global` | `wifi_on`, `mobile_data` |
-| Sockets | local address of TCP and UDP sockets (`IoBridge`), so the real interface IP does not leak |
-| Wi-Fi scan results | fake network added in Wi-Fi and Both, empty in Data |
+1. **System framework (recommended).** Hooks inside `system_server` (ConnectivityService, WifiService) and `com.android.phone` rewrite the answers for the apps you picked, matched by caller uid. Nothing per app needs to be scoped, and callbacks are covered at the source.
+2. **Inside the app (optional).** Scoping an app in Vector or LSPosed adds the checks that never reach the system: socket local address, `NetworkInterface`, Wi-Fi scan results and `Settings.Global`.
 
-One editable profile (SSID, router MAC, local IP and prefix, gateway, DNS, signal, link speed, frequency, mobile type,
-mobile interface and IP) keeps every answer consistent, so an app that checks the IP range sees the range you chose.
+| Area | System framework | Scoped app |
+|---|---|---|
+| Network capabilities, link properties, legacy `NetworkInfo`, network list, callbacks | yes | yes |
+| `WifiManager` info, DHCP, enabled state | yes | yes |
+| `TelephonyManager` network type, data state | yes (phone) | yes |
+| Stand-in cellular network in Both mode | yes | yes |
+| Socket local address, `NetworkInterface`, scan results, `Settings.Global` | no | yes |
+
+One editable profile (SSID, router MAC, local IP and prefix, gateway, DNS, signal, link speed, frequency, mobile type, mobile interface and IP) keeps every answer consistent, so an app that checks the IP range sees the range you chose.
 
 ## Modes
 
@@ -40,8 +39,8 @@ Changes take effect without a reboot. An app that already read the state keeps w
 ## Install
 
 1. Install `VirtualNet` from Releases and enable it in Vector or LSPosed.
-2. Open VirtualNet, pick a mode for an app. It asks the framework to add the app to scope (or add it yourself).
-3. Restart the target app once.
+2. Add **System Framework** and **Phone Services** to its scope (the app offers this on first launch), then restart the device or its framework once.
+3. Open VirtualNet and pick a mode for an app. No restart is needed. For socket and interface checks, also scope that app.
 
 ## Lab
 
@@ -53,8 +52,10 @@ Changes take effect without a reboot. An app that already read the state keeps w
 
 - Anything that bypasses the Java framework sees the real network: raw sockets, native code, server-side IP checks. `/proc/net/*` is blocked for normal apps on Android 10+ but readable for apps targeting old SDKs, and is not spoofed.
 - Apps that verify with latency, public IP or carrier attestation can still tell.
-- `Both` mode adds a stand-in cellular `Network` when the device has none. Callbacks registered for a cellular request do not fire for it.
+- `Both` mode adds a stand-in cellular `Network` (id 9998). Callbacks registered for a cellular request do not fire for it.
 - System-wide indicators (status bar, quick settings) are unchanged.
+- **Android 9 (API 28):** untested. On the Vector 2.2 lab image the framework could not inject its service into `system_server` or hand it to the module app, so no module can read settings there. This is a framework limit, not something VirtualNet can work around.
+- A change in system hooks needs the framework restarted once after installing or updating the module.
 
 ## Build
 
@@ -64,11 +65,4 @@ Changes take effect without a reboot. An app that already read the state keeps w
 
 Needs JDK 17+ and the Android SDK with platform 37.
 
-## Verified on
-
-| Device | Android | Result |
-|---|---|---|
-| Emulator (Vector 2.2) | 10 (API 29) | Wi-Fi, Data, Both, Off all consistent |
-| Poco X3 Pro (LineageOS, Magisk + Vector 2.2) | 15 (API 35) | Wi-Fi-only phone shown as mobile data, and mobile shown as Wi-Fi |
-
-See `docs/TESTING.md` for the matrix as it grows.
+See `docs/TESTING.md` for the device matrix.
