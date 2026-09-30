@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Build changes for F-Droid: dependency metadata block removed from the APK, wrapper checksum pinned.
+- No behaviour changes.
+
 ## 1.0.0
 
 First release.

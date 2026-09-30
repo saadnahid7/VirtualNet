@@ -14,8 +14,8 @@ android {
         applicationId = "com.droidrooter.virtualnet"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
     signingConfigs {
         if (signing != null) create("release") {
@@ -33,6 +33,8 @@ android {
             if (signing != null) signingConfig = signingConfigs.getByName("release")
         }
     }
+    // Drops the Google-signed dependency metadata block; F-Droid rejects it and it breaks reproducible builds.
+    dependenciesInfo { includeInApk = false; includeInBundle = false }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     sourceSets["main"].resources.srcDir("src/main/resources")
 }
