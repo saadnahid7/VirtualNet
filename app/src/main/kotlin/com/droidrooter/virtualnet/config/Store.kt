@@ -1,4 +1,4 @@
-package dev.virtualnet
+package com.droidrooter.virtualnet.config
 
 import android.content.Context
 import android.content.SharedPreferences

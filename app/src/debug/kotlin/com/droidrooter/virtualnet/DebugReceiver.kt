@@ -1,9 +1,12 @@
-package dev.virtualnet
+package com.droidrooter.virtualnet
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.droidrooter.virtualnet.config.Coverage
+import com.droidrooter.virtualnet.config.Mode
+import com.droidrooter.virtualnet.config.Store
 
 /** Debug builds only: lets the lab scripts set a mode without tapping the UI. */
 class DebugReceiver : BroadcastReceiver() {

@@ -1,4 +1,4 @@
-package dev.virtualnet.ui
+package com.droidrooter.virtualnet.ui
 
 import android.app.Activity
 import android.content.Intent
@@ -17,10 +17,10 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
-import dev.virtualnet.Coverage
-import dev.virtualnet.Mode
-import dev.virtualnet.R
-import dev.virtualnet.Store
+import com.droidrooter.virtualnet.R
+import com.droidrooter.virtualnet.config.Coverage
+import com.droidrooter.virtualnet.config.Mode
+import com.droidrooter.virtualnet.config.Store
 import io.github.libxposed.service.XposedService
 import java.util.concurrent.Executors
 

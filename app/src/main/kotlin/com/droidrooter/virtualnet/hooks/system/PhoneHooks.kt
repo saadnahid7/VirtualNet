@@ -1,9 +1,9 @@
-package dev.virtualnet.hooks
+package com.droidrooter.virtualnet.hooks.system
 
 import android.os.Binder
 import android.os.Process
 import android.util.Log
-import dev.virtualnet.Mode
+import com.droidrooter.virtualnet.config.Mode
 import io.github.libxposed.api.XposedInterface.ExceptionMode
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Modifier

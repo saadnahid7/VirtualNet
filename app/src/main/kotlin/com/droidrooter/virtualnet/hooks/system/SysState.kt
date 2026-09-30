@@ -1,11 +1,11 @@
-package dev.virtualnet.hooks
+package com.droidrooter.virtualnet.hooks.system
 
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.HandlerThread
-import dev.virtualnet.Config
-import dev.virtualnet.Mode
-import dev.virtualnet.Profile
+import com.droidrooter.virtualnet.config.Config
+import com.droidrooter.virtualnet.config.Mode
+import com.droidrooter.virtualnet.config.Profile
 import java.util.concurrent.ConcurrentHashMap
 
 /**

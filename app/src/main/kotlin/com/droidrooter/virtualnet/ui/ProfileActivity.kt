@@ -1,4 +1,4 @@
-package dev.virtualnet.ui
+package com.droidrooter.virtualnet.ui
 
 import android.app.Activity
 import android.os.Bundle
@@ -10,9 +10,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import dev.virtualnet.Profile
-import dev.virtualnet.R
-import dev.virtualnet.Store
+import com.droidrooter.virtualnet.R
+import com.droidrooter.virtualnet.config.Profile
+import com.droidrooter.virtualnet.config.Store
 
 /** Edits the one identity every spoofed app sees. Values are validated so the profile stays coherent. */
 class ProfileActivity : Activity() {

@@ -1,4 +1,4 @@
-package dev.virtualnet.ui
+package com.droidrooter.virtualnet.ui
 
 import android.app.Activity
 import android.content.Intent
@@ -10,7 +10,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import dev.virtualnet.R
+import com.droidrooter.virtualnet.R
 
 /** Developer and project details, in the same shape as the DRVCAM About page. */
 class AboutActivity : Activity() {

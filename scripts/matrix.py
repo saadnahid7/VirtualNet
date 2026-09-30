@@ -81,15 +81,15 @@ def kill():
 
 def lab_run(mode, cov="both"):
     adb("logcat", "-c")
-    adb("shell", "am", "broadcast", "-n", "dev.virtualnet/.DebugReceiver", "--es", "pkg", "dev.virtualnet.lab", "--es", "mode", mode, "--es", "cov", cov)
+    adb("shell", "am", "broadcast", "-n", "com.droidrooter.virtualnet/.DebugReceiver", "--es", "pkg", "com.droidrooter.virtualnet.lab", "--es", "mode", mode, "--es", "cov", cov)
     for _ in range(20):
-        if "debug set dev.virtualnet.lab" in adb("logcat", "-d", "-s", "VirtualNet"):
+        if "debug set com.droidrooter.virtualnet.lab" in adb("logcat", "-d", "-s", "VirtualNet"):
             break
         time.sleep(0.5)
     time.sleep(3)
-    sh("am force-stop dev.virtualnet.lab")
+    sh("am force-stop com.droidrooter.virtualnet.lab")
     adb("logcat", "-c")
-    sh("am start -n dev.virtualnet.lab/.LabActivity --ez run true")
+    sh("am start -n com.droidrooter.virtualnet.lab/.LabActivity --ez run true")
     time.sleep(11)
     return adb("logcat", "-d", "-s", "VNL")
 
@@ -174,9 +174,9 @@ def run_api(api):
         res["notes"].append("no vector"); kill(); return res
     for apk in (APP, LAB):
         adb("install", "-r", "-g", apk, timeout=180)
-    sh("pm grant dev.virtualnet.lab android.permission.READ_PHONE_STATE")
-    sh("pm grant dev.virtualnet.lab android.permission.ACCESS_FINE_LOCATION")
-    su(f"{CLI} modules disable dev.virtualnet; {CLI} modules enable dev.virtualnet; {CLI} scope set dev.virtualnet system/0 com.android.phone/0")
+    sh("pm grant com.droidrooter.virtualnet.lab android.permission.READ_PHONE_STATE")
+    sh("pm grant com.droidrooter.virtualnet.lab android.permission.ACCESS_FINE_LOCATION")
+    su(f"{CLI} modules disable com.droidrooter.virtualnet; {CLI} modules enable com.droidrooter.virtualnet; {CLI} scope set com.droidrooter.virtualnet system/0 com.android.phone/0")
     step("restarting zygote")
     su("setprop ctl.restart zygote")
     time.sleep(20)
@@ -185,11 +185,11 @@ def run_api(api):
         res["notes"].append("boot timeout after zygote restart"); kill(); return res
     go_root()
     step("system hooks restarted")
-    sh("monkey -p dev.virtualnet -c android.intent.category.LAUNCHER 1")
+    sh("monkey -p com.droidrooter.virtualnet -c android.intent.category.LAUNCHER 1")
     time.sleep(6)
     # Runtime grants can be dropped by the framework restart on some releases; regrant before testing.
-    sh("pm grant dev.virtualnet.lab android.permission.READ_PHONE_STATE")
-    sh("pm grant dev.virtualnet.lab android.permission.ACCESS_FINE_LOCATION")
+    sh("pm grant com.droidrooter.virtualnet.lab android.permission.READ_PHONE_STATE")
+    sh("pm grant com.droidrooter.virtualnet.lab android.permission.ACCESS_FINE_LOCATION")
     hooks = adb("logcat", "-d", "-s", "VirtualNet")
     res["hooks"] = sorted(set(re.findall(r"hooked (\S+)", hooks)))
     res["missing"] = sorted(set(re.findall(r"system: (\S+) not present", hooks)))
@@ -207,7 +207,7 @@ def run_api(api):
             res["modes"][mode] = f"error {e}"
     # Phase B: the Apps layer alone, with only the Lab in scope (the Android 9 route).
     step("phase B: apps only")
-    su(f"{CLI} scope set dev.virtualnet dev.virtualnet.lab/0")
+    su(f"{CLI} scope set com.droidrooter.virtualnet com.droidrooter.virtualnet.lab/0")
     res["apps"] = {}
     for mode in ("data", "wifi", "both", "off"):
         step(f"apps mode {mode}")

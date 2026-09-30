@@ -1,20 +1,36 @@
+import java.util.Properties
+
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
+
+// Release signing comes from a git-ignored file. Without it the release build is left unsigned,
+// which is what F-Droid expects (it signs with its own key).
+val signing = rootProject.file(".local/signing.properties").takeIf { it.exists() }
+    ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
+
 android {
-    namespace = "dev.virtualnet"
+    namespace = "com.droidrooter.virtualnet"
     compileSdk = 37
     defaultConfig {
-        applicationId = "dev.virtualnet"
+        applicationId = "com.droidrooter.virtualnet"
         minSdk = 28
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
+    }
+    signingConfigs {
+        if (signing != null) create("release") {
+            storeFile = rootProject.file(signing.getProperty("storeFile"))
+            storePassword = signing.getProperty("storePassword")
+            keyAlias = signing.getProperty("keyAlias")
+            keyPassword = signing.getProperty("keyPassword")
+        }
     }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            if (signing != null) signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

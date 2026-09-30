@@ -1,4 +1,4 @@
-package dev.virtualnet.hooks
+package com.droidrooter.virtualnet.hooks.common
 
 import java.lang.reflect.Field
 import java.lang.reflect.Method

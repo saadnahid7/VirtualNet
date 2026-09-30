@@ -1,4 +1,4 @@
-package dev.virtualnet.hooks
+package com.droidrooter.virtualnet.hooks.app
 
 import android.content.ContentResolver
 import android.net.ConnectivityManager
@@ -13,7 +13,9 @@ import android.os.Message
 import android.os.Process
 import android.telephony.TelephonyManager
 import android.util.Log
-import dev.virtualnet.Mode
+import com.droidrooter.virtualnet.config.Mode
+import com.droidrooter.virtualnet.hooks.common.Refl
+import com.droidrooter.virtualnet.hooks.common.Shape
 import io.github.libxposed.api.XposedInterface.Chain
 import io.github.libxposed.api.XposedInterface.ExceptionMode
 import io.github.libxposed.api.XposedModule
@@ -31,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Each hook runs the real method first, then rewrites its result according to the app's [Mode].
  * A failure in a rewrite is logged once and the real result is returned untouched.
  */
-internal class NetHooks(private val m: XposedModule, private val s: State) {
+internal class AppHooks(private val m: XposedModule, private val s: AppState) {
     private val logged = ConcurrentHashMap.newKeySet<String>()
     private val renamed = Collections.synchronizedMap(WeakHashMap<NetworkInterface, String>())
     @Volatile private var cm: ConnectivityManager? = null

@@ -1,13 +1,13 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
 android {
-    namespace = "dev.virtualnet.lab"
+    namespace = "com.droidrooter.virtualnet.lab"
     compileSdk = 36
     defaultConfig {
-        applicationId = "dev.virtualnet.lab"
+        applicationId = "com.droidrooter.virtualnet.lab"
         minSdk = 28
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
     }
     buildTypes {
         getByName("release") {

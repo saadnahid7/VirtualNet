@@ -1,4 +1,4 @@
-package dev.virtualnet.hooks
+package com.droidrooter.virtualnet.hooks.common
 
 import android.net.DhcpInfo
 import android.net.LinkProperties
@@ -6,7 +6,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkInfo
 import android.net.wifi.SupplicantState
 import android.net.wifi.WifiInfo
-import dev.virtualnet.Profile
+import com.droidrooter.virtualnet.config.Profile
 import java.net.Inet4Address
 import java.net.InetAddress
 

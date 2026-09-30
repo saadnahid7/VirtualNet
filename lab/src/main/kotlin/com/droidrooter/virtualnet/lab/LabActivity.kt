@@ -1,4 +1,4 @@
-package dev.virtualnet.lab
+package com.droidrooter.virtualnet.lab
 
 import android.Manifest
 import android.app.Activity

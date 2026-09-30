@@ -1,4 +1,4 @@
-package dev.virtualnet.ui
+package com.droidrooter.virtualnet.ui
 
 import android.app.Activity
 import android.content.Context
@@ -11,7 +11,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import dev.virtualnet.R
+import com.droidrooter.virtualnet.R
 
 /** Tiny view toolkit: keeps the APK free of AppCompat/Material while staying consistent. */
 internal fun Context.dp(v: Int) = (v * resources.displayMetrics.density + 0.5f).toInt()
