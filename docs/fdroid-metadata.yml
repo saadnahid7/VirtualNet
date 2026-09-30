@@ -22,7 +22,7 @@ Builds:
     subdir: app
     gradle:
       - yes
-    prebuild: "sed -i 's/compileSdk = 37/compileSdkVersion(\"android-37.0\")/' build.gradle.kts"
+    prebuild: sed -i 's/compileSdk = 37/compileSdkVersion("android-37.0")/' build.gradle.kts
 
 AllowedAPKSigningKeys: 91c6a60f01db8782d0b05954a34b1e4400643bd90bdf176371595a8be475e7a2
 
