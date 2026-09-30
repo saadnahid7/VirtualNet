@@ -65,7 +65,7 @@ Your real traffic never changes. Only the answers an app gets when it asks "what
 - **Inside-the-app coverage.** Optional hooks in a scoped app also cover socket addresses, network interfaces and Wi-Fi scan results.
 - **Choose your layer.** A switch selects System, Apps or Both.
 - **Small and quiet.** About 120 KB, no network permission, no ads, no analytics, no accounts.
-- **Built-in detector.** The Lab app shows exactly what an app would see, so you can verify a change in seconds.
+- **Verifiable.** A detector app (built from source) shows exactly what an app would see, so you can check a change in seconds.
 
 ## Modes
 
@@ -169,7 +169,7 @@ It leaves VPN transports alone.
 
 ## Lab app
 
-`lab/` is a small detector called **VirtualNet Lab**. It reads the connection through every route an app can use, prints a verdict (Wi-Fi, mobile or both) and logs one line per probe under the tag `VNL`. Set a mode for it like any other app to see the effect.
+`lab/` holds a small detector called **VirtualNet Lab**. It is a development tool and is not shipped in releases. Build it from source (`./gradlew :lab:assembleDebug`) if you want to check what an app would see. It reads the connection through every route an app can use, prints a verdict (Wi-Fi, mobile or both) and logs one line per probe under the tag `VNL`. Set a mode for it like any other app to see the effect.
 
 ## Building
 
