@@ -1,0 +1,19 @@
+Some apps only work when they think you are on Wi-Fi. Others insist on mobile data. VirtualNet lets you decide, per app, what the app is told about your connection, without changing the connection itself.
+
+A phone on mobile data can look like it is on Wi-Fi to one app. A phone on Wi-Fi can look like mobile data to another. Everything else sees the truth. Your real traffic never changes.
+
+<b>Features</b>
+• Wi-Fi, Data, Both or Off for each app, applied live with no reboot
+• One editable network profile (SSID, router MAC, IP range, gateway, DNS, signal, mobile type) so every answer stays consistent
+• System framework coverage for every app you pick, plus optional hooks inside a scoped app
+• A switch to use the system layer, the app layer, or both
+• Small, with no network permission, no ads and no analytics
+• Includes a detector app that shows exactly what an app would see
+
+<b>Requirements</b>
+A rooted device with LSPosed, Vector or another framework that supports the modern libxposed API. Android 9 or newer. Android 9 is unverified; Android 10 to 17 are verified.
+
+<b>Note</b>
+Anything outside the Java framework, such as raw sockets, native code and server-side checks like your public IP, still sees the real network.
+
+A project of DroidRooter. Open source under the MIT license.

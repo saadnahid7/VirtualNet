@@ -1,0 +1,5 @@
+First release.
+- Per-app Wi-Fi, Data, Both or Off
+- System framework and in-app coverage with a layer switch
+- One editable network profile
+- Android 9 to 17 (Android 9 unverified)

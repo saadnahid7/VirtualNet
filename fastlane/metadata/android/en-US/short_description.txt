@@ -1,0 +1,1 @@
+Choose what each app sees: Wi-Fi, mobile data, or both. Xposed module.
