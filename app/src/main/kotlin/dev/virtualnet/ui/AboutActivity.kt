@@ -11,7 +11,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import dev.virtualnet.R
-import dev.virtualnet.Store
 
 /** Developer and project details, in the same shape as the DRVCAM About page. */
 class AboutActivity : Activity() {
@@ -40,22 +39,21 @@ class AboutActivity : Activity() {
         body.addView(label("Per-app network spoofing for LSPosed", 14f, R.color.vn_muted).apply { gravity = Gravity.CENTER }, lp(top = 6))
 
         body.addView(card().apply {
-            addView(label("Developer", 12f, R.color.vn_muted, true))
-            addView(label("Droid Rooter Team", 16f, medium = true), lp(top = 4))
+            addView(label("Company", 12f, R.color.vn_muted, true))
+            addView(label("DroidRooter", 16f, medium = true), lp(top = 4))
         }, lp(top = 24))
+        link(body, "Developer", "saadnahid7", "https://github.com/saadnahid7")
         link(body, "VirtualNet on GitHub", "Source, releases and issues", "https://github.com/saadnahid7/VirtualNet")
         link(body, "Website", "DroidRooter.com", "https://droidrooter.com")
         link(body, "Facebook", "Facebook Page", "https://www.facebook.com/droidrooter")
         link(body, "Telegram", "@DroidRooter", "https://t.me/DroidRooter")
 
         val version = runCatching { packageManager.getPackageInfo(packageName, 0) }.getOrNull()
-        val fw = Store.service?.let { "${it.frameworkName} ${it.frameworkVersion}" } ?: "Framework not connected"
         body.addView(
             label("Version ${version?.versionName ?: "?"} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", 12f, R.color.vn_muted)
                 .apply { gravity = Gravity.CENTER },
             lp(top = 24),
         )
-        body.addView(label(fw, 12f, R.color.vn_muted).apply { gravity = Gravity.CENTER }, lp(top = 4))
         body.addView(
             label("Changes what apps are told about your connection. Real traffic is unchanged.", 12f, R.color.vn_muted)
                 .apply { gravity = Gravity.CENTER },

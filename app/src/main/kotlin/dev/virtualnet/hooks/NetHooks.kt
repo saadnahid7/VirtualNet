@@ -135,6 +135,8 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
 
     // ---- ConnectivityManager ------------------------------------------------------------
 
+    private fun isFakeNet(n: Network?) = n != null && n.toString() == FAKE_NET_ID.toString()
+
     private fun primaryType(mode: Mode) = if (mode.wifi) Shape.WIFI else Shape.CELL
 
     private fun remember(c: Chain) {
@@ -158,7 +160,7 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
             Shape.netInfo(ni, arg, if (arg == Shape.WIFI) mode.wifi else mode.cell, s.profile())
             return ni
         }
-        val isFake = arg == fakeCell
+        val isFake = isFakeNet(arg as? Network)
         val type = if (isFake) Shape.CELL else primaryType(mode)
         val ni = (orig as? NetworkInfo) ?: (if (isFake) Shape.newNetInfo(type) else null) ?: return orig
         Shape.netInfo(ni, type, true, s.profile())
@@ -192,7 +194,7 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
 
     private fun caps(c: Chain, orig: Any?, mode: Mode): Any? {
         remember(c)
-        if (orig == null && c.args[0] == fakeCell) {
+        if (orig == null && isFakeNet(c.args[0] as? Network)) {
             val fresh = Refl.new(NetworkCapabilities::class.java) as? NetworkCapabilities ?: return orig
             Shape.caps(fresh, Shape.CELL, s.profile())
             return fresh
@@ -204,7 +206,7 @@ internal class NetHooks(private val m: XposedModule, private val s: State) {
 
     private fun linkProps(c: Chain, orig: Any?, mode: Mode): Any? {
         remember(c)
-        if (orig == null && c.args[0] == fakeCell) {
+        if (orig == null && isFakeNet(c.args[0] as? Network)) {
             val fresh = Refl.new(LinkProperties::class.java) as? LinkProperties ?: return orig
             Shape.link(fresh, Shape.CELL, s.profile())
             return fresh
