@@ -36,7 +36,7 @@ class AboutActivity : Activity() {
         }
         body.addView(logo, LinearLayout.LayoutParams(dp(84), dp(84)).apply { gravity = Gravity.CENTER_HORIZONTAL })
         body.addView(label("VirtualNet", 26f, medium = true).apply { gravity = Gravity.CENTER }, lp(top = 14))
-        body.addView(label("Per-app network spoofing for LSPosed", 14f, R.color.vn_muted).apply { gravity = Gravity.CENTER }, lp(top = 6))
+        body.addView(label("Per-app network spoofing, an Xposed module", 14f, R.color.vn_muted).apply { gravity = Gravity.CENTER }, lp(top = 6))
 
         body.addView(card().apply {
             addView(label("A project of", 12f, R.color.vn_muted, true))
