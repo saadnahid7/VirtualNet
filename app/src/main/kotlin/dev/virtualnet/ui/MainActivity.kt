@@ -38,6 +38,7 @@ class MainActivity : Activity() {
 
     private lateinit var status: TextView
     private lateinit var banner: LinearLayout
+    private lateinit var sysBanner: LinearLayout
     private lateinit var wifiTitle: TextView
     private lateinit var wifiSub: TextView
     private lateinit var cellSub: TextView
@@ -89,6 +90,14 @@ class MainActivity : Activity() {
             addView(label("Turn VirtualNet on in Vector or LSPosed, then reopen this screen.", 13f, R.color.vn_warn), lp(top = 4))
         }
         h.addView(banner, lp(top = 4))
+
+        sysBanner = card().apply {
+            background = shape(color(R.color.vn_accent_bg), 14)
+            addView(label("Recommended: System Framework", 14f, R.color.vn_accent, true))
+            addView(label("Adds it to scope so every app you pick is covered without adding each one. Tap to add.", 13f, R.color.vn_accent), lp(top = 4))
+            setOnClickListener { requestScope(listOf("system", "com.android.phone")) }
+        }
+        h.addView(sysBanner, lp(top = 8))
 
         val wifi = card().apply {
             addView(label("Fake Wi-Fi", 12f, R.color.vn_muted, true))
@@ -159,6 +168,7 @@ class MainActivity : Activity() {
         status.setTextColor(color(if (live) R.color.vn_ok else R.color.vn_warn))
         status.background = shape(color(if (live) R.color.vn_ok_bg else R.color.vn_warn_bg), 99)
         banner.visibility = if (live) View.GONE else View.VISIBLE
+        sysBanner.visibility = if (live && "system" !in scope) View.VISIBLE else View.GONE
         systemToggle.text = if (showSystem) "Hide system apps" else "Show system apps"
     }
 
@@ -166,7 +176,7 @@ class MainActivity : Activity() {
         val svc: XposedService = Store.service ?: return
         io.execute {
             val s = runCatching { svc.scope.toSet() }.getOrDefault(emptySet())
-            runOnUiThread { scope = s; adapter.notifyDataSetChanged() }
+            runOnUiThread { scope = s; refreshHeader(); adapter.notifyDataSetChanged() }
         }
     }
 
@@ -189,23 +199,24 @@ class MainActivity : Activity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun pick(row: Row, mode: Mode) {
-        Store.setMode(row.pkg, mode)
-        val svc = Store.service
-        if (mode != Mode.OFF && svc != null && row.pkg !in scope) {
-            io.execute {
-                runCatching {
-                    svc.requestScope(listOf(row.pkg), object : XposedService.OnScopeEventListener {
-                        override fun onScopeRequestApproved(approved: List<String>) = refreshScope()
-                        override fun onScopeRequestFailed(message: String) {
-                            runOnUiThread {
-                                Toast.makeText(this@MainActivity, "Add ${row.label} to scope in Vector or LSPosed", Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    })
-                }
+    private fun requestScope(packages: List<String>, label: String = "System Framework") {
+        val svc = Store.service ?: return
+        io.execute {
+            runCatching {
+                svc.requestScope(packages, object : XposedService.OnScopeEventListener {
+                    override fun onScopeRequestApproved(approved: List<String>) = refreshScope()
+                    override fun onScopeRequestFailed(message: String) {
+                        runOnUiThread { Toast.makeText(this@MainActivity, "Add $label to scope in Vector or LSPosed", Toast.LENGTH_LONG).show() }
+                    }
+                })
             }
         }
+    }
+
+    private fun pick(row: Row, mode: Mode) {
+        Store.setMode(row.pkg, mode)
+        // The system framework covers every app; only ask for a per-app scope when it is missing.
+        if (mode != Mode.OFF && Store.service != null && "system" !in scope && row.pkg !in scope) requestScope(listOf("system", "com.android.phone"))
         adapter.notifyDataSetChanged()
     }
 
@@ -248,8 +259,8 @@ class MainActivity : Activity() {
                 ?: runCatching { packageManager.getApplicationIcon(r.pkg) }.getOrNull()?.also { icons.put(r.pkg, it) }
             icon.setImageDrawable(cached)
             val mode = Store.mode(r.pkg)
-            val needsScope = mode != Mode.OFF && Store.service != null && r.pkg !in scope
-            sub.text = if (needsScope) "Not in scope. Add it in Vector or LSPosed." else r.pkg
+            val needsScope = mode != Mode.OFF && Store.service != null && "system" !in scope && r.pkg !in scope
+            sub.text = if (needsScope) "Not covered. Add System Framework in Vector or LSPosed." else r.pkg
             sub.setTextColor(color(if (needsScope) R.color.vn_warn else R.color.vn_muted))
             seg.selected = modes.indexOf(mode)
         }

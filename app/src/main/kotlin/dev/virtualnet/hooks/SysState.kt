@@ -36,7 +36,7 @@ internal class SysState(private val prefs: SharedPreferences, private val log: (
         handler.removeCallbacksAndMessages(null)
         handler.post {
             val wanted = Config.modes(prefs).filterValues { it != Mode.OFF }
-            if (wanted.isEmpty()) { byAppId = emptyMap(); return@post }
+            if (wanted.isEmpty()) { byAppId = emptyMap(); log("modes resolved: none configured", null); return@post }
             val pm = runCatching {
                 val at = Class.forName("android.app.ActivityThread")
                 val thread = at.getMethod("currentActivityThread").invoke(null)
@@ -52,6 +52,7 @@ internal class SysState(private val prefs: SharedPreferences, private val log: (
                 map[uid % 100000] = mode
             }
             byAppId = map
+            log("modes resolved: ${map.size} of ${wanted.size} apps", null)
         }
     }
 }

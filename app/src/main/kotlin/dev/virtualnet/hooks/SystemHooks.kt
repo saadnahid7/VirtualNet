@@ -30,27 +30,35 @@ internal class SystemHooks(private val m: XposedModule, private val st: SysState
 
     private fun info(what: String) = m.log(Log.INFO, TAG, "[system:${Process.myPid()}] $what")
 
-    fun install() {
+    fun install(loader: ClassLoader? = null) {
         Refl.onMiss = { what, t -> log("reflection miss $what: ${t.javaClass.simpleName}") }
         val sm = runCatching { Class.forName("android.os.ServiceManager") }.getOrNull() ?: return log("no ServiceManager")
         // The service instance itself is the most reliable handle: its class is found whatever the
         // module, package relocation or Android version, and the hooks attach before any app calls it.
-        for (mtd in sm.declaredMethods.filter { it.name == "addService" && Modifier.isStatic(it.modifiers) }) {
-            m.hook(mtd).setExceptionMode(ExceptionMode.PROTECTIVE).setId("vn-sys-addService-${mtd.parameterCount}")
-                .intercept { chain ->
-                    try {
-                        val name = chain.args.getOrNull(0) as? String
-                        val binder = chain.args.getOrNull(1)
-                        if (binder != null) when (name) {
-                            "connectivity" -> hookConnectivity(binder.javaClass)
-                            "wifi" -> hookWifi(binder.javaClass)
-                        }
-                    } catch (t: Throwable) {
-                        log("addService hook failed", t)
-                    }
-                    chain.proceed()
+        val onPublish = { chain: Chain ->
+            try {
+                val name = chain.args.getOrNull(0) as? String
+                val binder = chain.args.getOrNull(1)
+                if (binder != null) when (name) {
+                    "connectivity" -> hookConnectivity(binder.javaClass)
+                    "wifi" -> hookWifi(binder.javaClass)
                 }
+            } catch (t: Throwable) {
+                log("publish hook failed", t)
+            }
+            chain.proceed()
         }
+        val entry = ArrayList<java.lang.reflect.Method>()
+        entry += sm.declaredMethods.filter { it.name == "addService" && Modifier.isStatic(it.modifiers) }
+        // Some builds inline ServiceManager.addService into its caller, so also watch SystemService itself.
+        val ss = runCatching { (loader ?: sm.classLoader).loadClass("com.android.server.SystemService") }.getOrNull()
+        if (ss != null) entry += ss.declaredMethods.filter { it.name == "publishBinderService" }
+        for (mtd in entry) {
+            m.hook(mtd).setExceptionMode(ExceptionMode.PROTECTIVE).setId("vn-sys-publish-${mtd.declaringClass.simpleName}-${mtd.parameterCount}")
+                .intercept(onPublish)
+            runCatching { m.deoptimize(mtd) }
+        }
+        info("watching ${entry.size} publish points")
         info("waiting for connectivity and wifi services")
     }
 
@@ -84,17 +92,26 @@ internal class SystemHooks(private val m: XposedModule, private val st: SysState
     private fun hookConnectivity(cs: Class<*>) {
         if (!hooked.add(cs)) return
         info("connectivity service: ${cs.name}")
-        val argUid = { c: Chain -> c.args[2] as Int }
+        info("caps candidates: " + cs.declaredMethods.filter { it.returnType == NetworkCapabilities::class.java }.joinToString { it.name + "/" + it.parameterCount + (if (Modifier.isStatic(it.modifiers)) "s" else "") })
+        // The caller uid is the last Int argument in every variant of these methods.
+        val argUid = { c: Chain -> c.args.filterIsInstance<Int>().last() }
 
-        // One chokepoint for direct queries and every callback delivery.
-        after(cs, "networkCapabilitiesRestrictedForCallerPermissions", argUid) { _, o, mode, _ ->
-            (o as? NetworkCapabilities)?.also { Shape.caps(it, kindFor(mode), st.profile()) } ?: o
+        // One chokepoint for direct queries and every callback delivery. Its name changed across
+        // releases: Android 17 calls it createWithSensitiveInfoSanitizedIfNecessaryWhenParceled.
+        val capsMethod = listOf(
+            "networkCapabilitiesRestrictedForCallerPermissions",
+            "createWithSensitiveInfoSanitizedIfNecessaryWhenParceled",
+        ).firstOrNull { name -> methods(cs, name).any { it.returnType == NetworkCapabilities::class.java } }
+        if (capsMethod != null) {
+            after(cs, capsMethod, argUid) { _, o, mode, _ ->
+                (o as? NetworkCapabilities)?.let { copyNc(it) }?.also { Shape.caps(it, kindFor(mode), st.profile()) } ?: o
+            }
         }
-        after(cs, "linkPropertiesRestrictedForCallerPermissions", argUid) { c, o, mode, _ ->
+        after(cs, "linkPropertiesRestrictedForCallerPermissions", argUid) { _, o, mode, _ ->
             (o as? LinkProperties)?.also { Shape.link(it, kindFor(mode), st.profile()) } ?: o
         }
-        // Older releases have no such chokepoint; the binder entry point is the fallback.
-        if (methods(cs, "networkCapabilitiesRestrictedForCallerPermissions").isEmpty()) {
+        // Without a chokepoint the binder entry points are the fallback.
+        if (capsMethod == null) {
             after(cs, "getNetworkCapabilities") { c, o, mode, _ -> capsFallback(c, o, mode) }
             after(cs, "getLinkProperties") { c, o, mode, _ ->
                 (o as? LinkProperties)?.also { Shape.link(it, kindFor(mode), st.profile()) } ?: o
@@ -143,8 +160,12 @@ internal class SystemHooks(private val m: XposedModule, private val st: SysState
         if (o == null && isFake(c.args[0] as? Network)) {
             return (Refl.new(NetworkCapabilities::class.java) as? NetworkCapabilities)?.also { Shape.caps(it, Shape.CELL, st.profile()) }
         }
-        return (o as? NetworkCapabilities)?.also { Shape.caps(it, kindFor(mode), st.profile()) } ?: o
+        return (o as? NetworkCapabilities)?.let { copyNc(it) }?.also { Shape.caps(it, kindFor(mode), st.profile()) } ?: o
     }
+
+    /** Never edit the service's own object: it may be the live capabilities of a network. */
+    private fun copyNc(nc: NetworkCapabilities): NetworkCapabilities =
+        Refl.new(NetworkCapabilities::class.java, nc) as? NetworkCapabilities ?: nc
 
     private fun isFake(n: Network?) = n != null && n.toString() == FAKE_NET_ID.toString()
 

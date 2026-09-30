@@ -43,7 +43,7 @@ class VirtualNetModule : XposedModule() {
         }
         log(Log.INFO, TAG, "system server starting framework=$frameworkName/$frameworkVersion api=$apiVersion")
         val state = SysState(prefs) { what, t -> log(Log.WARN, TAG, what, t) }
-        SystemHooks(this, state).install()
+        SystemHooks(this, state).install(param.classLoader)
     }
 
     companion object {
