@@ -32,46 +32,24 @@ The old `repo.xposed.info` is a legacy repository for the original Xposed API. V
 4. In that repository:
    - Set the repository description to the module name: `VirtualNet`.
    - Put the README there (copy of the project README).
-   - Create a release with tag `1-1.0.0` (`versionCode-versionName`) and attach the signed APK.
+   - Create a release with tag `<versionCode>-<versionName>`, for example `2-1.0.1` (`versionCode-versionName`) and attach the signed APK.
 
 ## 3. F-Droid
 
-F-Droid builds from source and signs with its own key.
+F-Droid builds from source. VirtualNet builds reproducibly, so F-Droid publishes the APK signed with **our** key: it rebuilds the tagged commit, checks it matches the release APK, and copies our signature.
 
-1. Tag the release commit `v1.0.0` in this repo (fastlane metadata and the changelog for version code 1 are already in the repo).
+What makes that work:
+
+- Release builds are made from a clean checkout of the tag (line endings are pinned to LF in `.gitattributes`).
+- The Google dependency metadata block and VCS info are removed from the APK (`app/build.gradle.kts`).
+- `AllowedAPKSigningKeys` holds the SHA-256 of the release certificate, and `Binaries` points at the GitHub release APK.
+
+Steps:
+
+1. Tag the release commit `v<versionName>` and attach the signed APK named `VirtualNet-<versionName>.apk` to the GitHub release.
 2. Sign in to GitLab, fork <https://gitlab.com/fdroid/fdroiddata>, and create a branch named `com.droidrooter.virtualnet`.
-3. Add `metadata/com.droidrooter.virtualnet.yml`:
-
-```yaml
-Categories:
-  - System
-License: MIT
-AuthorName: DroidRooter
-WebSite: https://droidrooter.com
-SourceCode: https://github.com/saadnahid7/VirtualNet
-IssueTracker: https://github.com/saadnahid7/VirtualNet/issues
-Changelog: https://github.com/saadnahid7/VirtualNet/blob/HEAD/CHANGELOG.md
-
-AutoName: VirtualNet
-
-RepoType: git
-Repo: https://github.com/saadnahid7/VirtualNet.git
-
-Builds:
-  - versionName: 1.0.0
-    versionCode: 1
-    commit: v1.0.0
-    subdir: app
-    gradle:
-      - yes
-
-AutoUpdateMode: Version
-UpdateCheckMode: Tags
-CurrentVersion: 1.0.0
-CurrentVersionCode: 1
-```
-
-4. Open a merge request against `fdroid/fdroiddata` and work through the lint and build-server results. The build needs JDK 17+ and Android platform 37.
+3. Add `metadata/com.droidrooter.virtualnet.yml` (LF line endings). The current file is [`fdroid-metadata.yml`](fdroid-metadata.yml). The `commit` field must be the full hash of the tag.
+4. Open a merge request titled `New app: VirtualNet` and work through the lint and build results. The build needs JDK 17+ and Android platform 37.
 
 ## 4. Each new version
 
