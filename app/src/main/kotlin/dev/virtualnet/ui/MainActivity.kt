@@ -97,7 +97,13 @@ class MainActivity : Activity() {
 
         sysBanner = card().apply {
             background = shape(color(R.color.vn_accent_bg), 14)
-            addView(label("Recommended: System Framework", 14f, R.color.vn_accent, true))
+            val top = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
+            top.addView(label("Recommended: System Framework", 14f, R.color.vn_accent, true), lp(0, weight = 1f))
+            top.addView(label("Hide", 13f, R.color.vn_accent, true).apply {
+                setPadding(dp(12), dp(6), 0, dp(6))
+                setOnClickListener { setBannerHidden(true) }
+            })
+            addView(top)
             addView(label("Adds it to scope so every app you pick is covered without adding each one. Tap to add.", 13f, R.color.vn_accent), lp(top = 4))
             setOnClickListener { requestScope(listOf("system", "com.android.phone")) }
         }
@@ -171,6 +177,14 @@ class MainActivity : Activity() {
         super.onPause()
     }
 
+    /** A per-device convenience, not a module setting, so it stays in this app's own preferences. */
+    private fun bannerHidden() = getSharedPreferences("ui", MODE_PRIVATE).getBoolean("hide_system_tip", false)
+
+    private fun setBannerHidden(hidden: Boolean) {
+        getSharedPreferences("ui", MODE_PRIVATE).edit().putBoolean("hide_system_tip", hidden).apply()
+        refreshHeader()
+    }
+
     private fun refreshHeader() {
         val p = Store.profile()
         wifiTitle.text = p.ssid
@@ -188,7 +202,7 @@ class MainActivity : Activity() {
             Coverage.APPS -> "Inside each app only. Add every app to scope in Vector or LSPosed. Works without touching the system framework."
             Coverage.BOTH -> "System framework plus inside each scoped app. Most complete."
         }
-        sysBanner.visibility = if (live && cv.system && "system" !in scope) View.VISIBLE else View.GONE
+        sysBanner.visibility = if (live && cv.system && "system" !in scope && !bannerHidden()) View.VISIBLE else View.GONE
         systemToggle.text = if (showSystem) "Hide system apps" else "Show system apps"
     }
 

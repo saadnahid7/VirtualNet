@@ -39,7 +39,7 @@ class AboutActivity : Activity() {
         body.addView(label("Per-app network spoofing for LSPosed", 14f, R.color.vn_muted).apply { gravity = Gravity.CENTER }, lp(top = 6))
 
         body.addView(card().apply {
-            addView(label("Company", 12f, R.color.vn_muted, true))
+            addView(label("A project of", 12f, R.color.vn_muted, true))
             addView(label("DroidRooter", 16f, medium = true), lp(top = 4))
         }, lp(top = 24))
         link(body, "Developer", "saadnahid7", "https://github.com/saadnahid7")

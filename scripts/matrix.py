@@ -70,9 +70,9 @@ def kill():
         time.sleep(2)
     time.sleep(3)
 
-def lab_run(mode):
+def lab_run(mode, cov="both"):
     adb("logcat", "-c")
-    adb("shell", "am", "broadcast", "-n", "dev.virtualnet/.DebugReceiver", "--es", "pkg", "dev.virtualnet.lab", "--es", "mode", mode)
+    adb("shell", "am", "broadcast", "-n", "dev.virtualnet/.DebugReceiver", "--es", "pkg", "dev.virtualnet.lab", "--es", "mode", mode, "--es", "cov", cov)
     for _ in range(20):
         if "debug set dev.virtualnet.lab" in adb("logcat", "-d", "-s", "VirtualNet"):
             break
@@ -138,6 +138,19 @@ def check(mode, d, events):
         need("rmnet_data0" not in " ".join(v[0] for k, v in d.items() if k.startswith("network ")), "leakIface")
     return bad
 
+def check_apps(mode, d, events):
+    """Apps layer also covers sockets and interfaces, which the system layer cannot."""
+    bad = check(mode, d, events)
+    tcp = d.get("TCP local address", ("", ""))[0]
+    ifs = " ".join(v[0] for k, v in d.items() if k.startswith("up+ipv4") or k == "interfaces")
+    if mode == "data":
+        if "10.72.14.201" not in tcp: bad.append("tcpLocal")
+        if "10.72.14.201" not in ifs: bad.append("ifaceIp")
+    elif mode in ("wifi", "both"):
+        if "192.168.1.24" not in tcp: bad.append("tcpLocal")
+        if "192.168.1.24" not in ifs: bad.append("ifaceIp")
+    return bad
+
 def run_api(api):
     res = {"api": api, "modes": {}, "notes": []}
     start(api)
@@ -183,6 +196,18 @@ def run_api(api):
                 res.setdefault("detail", {})[mode] = {k: d.get(k) for k in keys if k in d} | {"events": [e[:90] for e in ev[-3:]]}
         except Exception as e:
             res["modes"][mode] = f"error {e}"
+    # Phase B: the Apps layer alone, with only the Lab in scope (the Android 9 route).
+    step("phase B: apps only")
+    su(f"{CLI} scope set dev.virtualnet dev.virtualnet.lab/0")
+    res["apps"] = {}
+    for mode in ("data", "wifi", "both", "off"):
+        step(f"apps mode {mode}")
+        try:
+            d, ev = parse(lab_run(mode, "apps"))
+            bad = check_apps(mode, d, ev)
+            res["apps"][mode] = "pass" if not bad and d else ("fail: " + ",".join(bad) if d else "no data")
+        except Exception as e:
+            res["apps"][mode] = f"error {e}"
     kill()
     return res
 
