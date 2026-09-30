@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Build: updated the Android Gradle Plugin to 9.1.1. No behaviour changes.
+
 ## 1.0.2
 
 First public release.
