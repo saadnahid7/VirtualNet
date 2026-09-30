@@ -16,17 +16,16 @@ Repo: https://github.com/saadnahid7/VirtualNet.git
 Binaries: https://github.com/saadnahid7/VirtualNet/releases/download/v%v/VirtualNet-%v.apk
 
 Builds:
-  - versionName: 1.0.2
-    versionCode: 3
-    commit: d0789c2a75ba6027687d5fae2cab869f3e0c91f3
+  - versionName: 1.0.3
+    versionCode: 4
+    commit: e3606cdc969987da4913d18fd88c8e807c512178
     subdir: app
     gradle:
       - yes
-    prebuild: sed -i 's/compileSdk = 37/compileSdkVersion("android-37.0")/' build.gradle.kts
 
 AllowedAPKSigningKeys: 91c6a60f01db8782d0b05954a34b1e4400643bd90bdf176371595a8be475e7a2
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.2
-CurrentVersionCode: 3
+CurrentVersion: 1.0.3
+CurrentVersionCode: 4
