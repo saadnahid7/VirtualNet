@@ -8,8 +8,8 @@ Pass means the Lab agrees with the mode on: legacy network info, capabilities an
 
 | Device | API | Framework | System layer (wifi/data/both/off) | Apps-only layer |
 |---|---|---|---|---|
-| Emulator google_apis x86_64 | 29 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
 | Emulator google_apis x86_64 | 28 | Vector 2.2 debug | not testable | not testable |
+| Emulator google_apis x86_64 | 29 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
 | Emulator google_apis x86_64 | 30 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
 | Emulator google_apis x86_64 | 31 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
 | Emulator google_apis x86_64 | 33 | Vector 2.2 debug | pass / pass / pass / pass | pass / pass / pass / pass |
