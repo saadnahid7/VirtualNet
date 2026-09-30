@@ -8,7 +8,8 @@ Results are appended to .local/matrix-results.jsonl.
 import json, os, re, subprocess, sys, time
 
 ADB = os.environ.get("VNET_ADB", "D:/AndroidDev/Sdk/platform-tools/adb.exe")
-LAB_REPO = "D:/Documents/ChatGPT/Flutter_Lsposed"
+# Folder holding scripts/start-root-emulator.ps1 and the rooted AVDs (see docs/TESTING.md). Set VNET_LAB_REPO.
+LAB_REPO = os.environ.get("VNET_LAB_REPO", "D:/Documents/ChatGPT/Flutter_Lsposed")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SER = "emulator-5558"
 CLI = "/data/adb/modules/zygisk_vector/cli"

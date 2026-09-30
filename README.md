@@ -6,7 +6,7 @@
 
 **Choose what each app sees: Wi-Fi, mobile data, or both.**
 
-An LSPosed / Vector module for Android 9 and up, by [DroidRooter](https://droidrooter.com).
+An open-source LSPosed / Vector module for Android 9 and up, by [DroidRooter](https://droidrooter.com).
 
 [![License](https://img.shields.io/github/license/saadnahid7/VirtualNet?style=for-the-badge&color=blue)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/saadnahid7/VirtualNet?style=for-the-badge&color=teal)](https://github.com/saadnahid7/VirtualNet/releases/latest)
@@ -50,6 +50,7 @@ Your real traffic never changes. Only the answers an app gets when it asks "what
 - [Lab app](#lab-app)
 - [Building](#building)
 - [Project layout](#project-layout)
+- [Open source](#open-source)
 - [Contributing](#contributing)
 - [Disclaimer](#disclaimer)
 - [Acknowledgements](#acknowledgements)
@@ -195,6 +196,10 @@ docs/      testing notes, screenshots
 scripts/   emulator and device test harness
 fastlane/  store listing text and images
 ```
+
+## Open source
+
+VirtualNet is free and open source under the [MIT license](LICENSE). The module, the settings app, the Lab detector, the test scripts and the store listing are all in this repository, and releases are built from it. There is no closed part, no tracking and no account. Read it, audit it, fork it.
 
 ## Contributing
 
