@@ -16,5 +16,5 @@ internal class AppState(val pkg: String, private val prefs: SharedPreferences) {
 
     fun mode(): Mode = if (Config.coverage(prefs).apps) Config.mode(prefs, pkg) else Mode.OFF
 
-    fun profile(): Profile = cached ?: Config.profile(prefs).also { cached = it }
+    fun profile(): Profile = cached ?: Config.resolvedProfile(prefs).also { cached = it }
 }

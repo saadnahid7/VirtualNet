@@ -1,0 +1,1 @@
+Multiple network profiles with names. Randomize on launch option. One-tap field randomizer in the profile editor. Capture your real Wi-Fi or mobile data into a new profile.

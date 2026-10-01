@@ -24,7 +24,7 @@ internal class SysState(private val prefs: SharedPreferences, private val log: (
         refresh()
     }
 
-    fun profile(): Profile = profileCache ?: Config.profile(prefs).also { profileCache = it }
+    fun profile(): Profile = profileCache ?: Config.resolvedProfile(prefs).also { profileCache = it }
 
     /** Mode for the app that owns [uid]; system and root callers are never touched. */
     fun mode(uid: Int): Mode {

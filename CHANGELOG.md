@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.4
+
+- Multiple network profiles: create, name, edit and delete as many profiles as you need.
+- Randomize on launch: optionally pick a different profile each time an app starts.
+- Randomize button in the profile editor: fills all Wi-Fi and mobile fields with plausible random values in one tap.
+- Save current network: capture your real Wi-Fi or mobile state directly into a new profile.
+
 ## 1.0.3
 
 - Build: updated the Android Gradle Plugin to 9.1.1. No behaviour changes.

@@ -2,6 +2,8 @@ package com.droidrooter.virtualnet.config
 
 import android.content.SharedPreferences
 import android.os.Build
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** What the target app is told about its connection. */
 enum class Mode(val key: String) {
@@ -50,13 +52,51 @@ data class Profile(
     val techName get() = when (tech) { "NR" -> "NR"; "HSPA+" -> "HSPAP"; else -> "LTE" }
 }
 
+/** A named saved profile entry. */
+data class ProfileEntry(val name: String, val profile: Profile) {
+    fun toJson(): JSONObject = JSONObject().apply {
+        put("name", name)
+        val p = profile
+        put("ssid", p.ssid); put("bssid", p.bssid); put("ip", p.ip)
+        put("prefix", p.prefix); put("gw", p.gateway); put("dns", p.dns)
+        put("rssi", p.rssi); put("speed", p.linkSpeed); put("freq", p.frequency)
+        put("tech", p.tech); put("iface", p.mobileIface); put("cip", p.mobileIp)
+    }
+
+    companion object {
+        fun fromJson(o: JSONObject): ProfileEntry {
+            val d = Profile()
+            return ProfileEntry(
+                name = o.optString("name", "Profile"),
+                profile = Profile(
+                    ssid = o.optString("ssid", d.ssid),
+                    bssid = o.optString("bssid", d.bssid),
+                    ip = o.optString("ip", d.ip),
+                    prefix = o.optInt("prefix", d.prefix),
+                    gateway = o.optString("gw", d.gateway),
+                    dns = o.optString("dns", d.dns),
+                    rssi = o.optInt("rssi", d.rssi),
+                    linkSpeed = o.optInt("speed", d.linkSpeed),
+                    frequency = o.optInt("freq", d.frequency),
+                    tech = o.optString("tech", d.tech),
+                    mobileIface = o.optString("iface", d.mobileIface),
+                    mobileIp = o.optString("cip", d.mobileIp),
+                )
+            )
+        }
+    }
+}
+
 /**
  * Single source of truth for settings. The UI writes here; the hooked process reads the same
  * keys from the framework's remote preferences, so a change needs no reboot and no app restart.
  */
 object Config {
     const val GROUP = "virtualnet"
+    const val RANDOM_INDEX = -1
     private const val M = "m."
+    private const val PROF_LIST = "prof_list"
+    private const val ACTIVE_PROF = "active_prof"
 
     fun coverage(p: SharedPreferences) = Coverage.of(p.getString("cov", null))
 
@@ -70,6 +110,45 @@ object Config {
 
     fun modes(p: SharedPreferences): Map<String, Mode> =
         p.all.filterKeys { it.startsWith(M) }.mapKeys { it.key.removePrefix(M) }.mapValues { Mode.of(it.value as? String) }
+
+    // ---- Multi-profile storage ----------------------------------------------------------
+
+    fun profileEntries(p: SharedPreferences): List<ProfileEntry> {
+        val json = p.getString(PROF_LIST, null)
+        if (json != null) {
+            try {
+                val arr = JSONArray(json)
+                if (arr.length() > 0)
+                    return (0 until arr.length()).map { ProfileEntry.fromJson(arr.getJSONObject(it)) }
+            } catch (_: Exception) {}
+        }
+        // Migration: wrap the existing flat profile as a single "Default" entry.
+        return listOf(ProfileEntry("Default", profile(p)))
+    }
+
+    fun putProfileEntries(e: SharedPreferences.Editor, entries: List<ProfileEntry>) {
+        val arr = JSONArray()
+        entries.forEach { arr.put(it.toJson()) }
+        e.putString(PROF_LIST, arr.toString())
+    }
+
+    fun activeProfileIndex(p: SharedPreferences) = p.getInt(ACTIVE_PROF, 0)
+
+    fun setActiveProfileIndex(e: SharedPreferences.Editor, idx: Int) { e.putInt(ACTIVE_PROF, idx) }
+
+    /**
+     * Resolves the active (or a random) profile from the multi-profile list. This is what the hooks
+     * should call. The result is cached by [AppState]/[SysState], so random picks once per process.
+     */
+    fun resolvedProfile(p: SharedPreferences): Profile {
+        val entries = profileEntries(p)
+        if (entries.isEmpty()) return profile(p)
+        val idx = activeProfileIndex(p)
+        return if (idx == RANDOM_INDEX) entries.random().profile
+        else entries.getOrElse(idx.coerceAtLeast(0)) { entries.first() }.profile
+    }
+
+    // ---- Legacy single-profile read/write (used for migration and direct flat-key access) ----
 
     fun profile(p: SharedPreferences): Profile {
         val d = Profile()

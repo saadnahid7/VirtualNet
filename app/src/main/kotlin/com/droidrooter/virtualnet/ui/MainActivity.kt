@@ -115,7 +115,7 @@ class MainActivity : Activity() {
             addView(wifiTitle, lp(top = 4))
             wifiSub = label("", 13f, R.color.vn_muted)
             addView(wifiSub, lp(top = 4))
-            setOnClickListener { startActivity(Intent(this@MainActivity, ProfileActivity::class.java)) }
+            setOnClickListener { startActivity(Intent(this@MainActivity, ProfileListActivity::class.java)) }
         }
         h.addView(wifi, lp(top = 12))
 
@@ -123,7 +123,7 @@ class MainActivity : Activity() {
             addView(label("Fake mobile data", 12f, R.color.vn_muted, true))
             cellSub = label("", 15f, medium = true)
             addView(cellSub, lp(top = 4))
-            setOnClickListener { startActivity(Intent(this@MainActivity, ProfileActivity::class.java)) }
+            setOnClickListener { startActivity(Intent(this@MainActivity, ProfileListActivity::class.java)) }
         }
         h.addView(cell, lp(top = 8))
 
@@ -187,8 +187,15 @@ class MainActivity : Activity() {
 
     private fun refreshHeader() {
         val p = Store.profile()
-        wifiTitle.text = p.ssid
-        wifiSub.text = "${p.ip} · wlan0 · ${p.rssi} dBm"
+        val isRandom = Store.activeProfileIndex() == com.droidrooter.virtualnet.config.Config.RANDOM_INDEX
+        val profileName = if (isRandom) {
+            val count = Store.profiles().size
+            "Random · $count profile${if (count == 1) "" else "s"}"
+        } else {
+            Store.profiles().getOrNull(Store.activeProfileIndex())?.name ?: p.ssid
+        }
+        wifiTitle.text = profileName
+        wifiSub.text = "${p.ssid}  ·  ${p.ip}  ·  ${p.rssi} dBm"
         cellSub.text = "${p.tech} · ${p.mobileIface} · ${p.mobileIp}"
         val live = Store.service != null
         status.text = if (live) "Active" else "Not active"

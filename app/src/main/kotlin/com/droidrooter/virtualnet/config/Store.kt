@@ -61,6 +61,33 @@ object Store {
     fun setMode(pkg: String, mode: Mode) = edit { Config.setMode(it, pkg, mode) }
     fun coverage() = Config.coverage(local)
     fun setCoverage(c: Coverage) = edit { Config.setCoverage(it, c) }
-    fun profile() = Config.profile(local)
+
+    /** The resolved active (or randomly picked) profile — what hooks and the UI preview should show. */
+    fun profile() = Config.resolvedProfile(local)
+
+    fun profiles() = Config.profileEntries(local)
+    fun activeProfileIndex() = Config.activeProfileIndex(local)
+
+    /**
+     * Saves the profile list and sets the active index. Also writes the resolved flat profile keys
+     * so any code that reads the legacy keys still works correctly after a change.
+     */
+    fun setProfiles(entries: List<ProfileEntry>, activeIdx: Int) = edit {
+        Config.putProfileEntries(it, entries)
+        Config.setActiveProfileIndex(it, activeIdx)
+    }
+
+    /** Convenience: update a single entry in the list (or append if index == size). */
+    fun upsertProfile(entry: ProfileEntry, atIndex: Int) {
+        val list = profiles().toMutableList()
+        if (atIndex < 0 || atIndex >= list.size) list.add(entry) else list[atIndex] = entry
+        val activeIdx = activeProfileIndex()
+        edit {
+            Config.putProfileEntries(it, list)
+            Config.setActiveProfileIndex(it, activeIdx)
+        }
+    }
+
+    /** Legacy single-profile setter — kept for any callers that have not been migrated. */
     fun setProfile(p: Profile) = edit { Config.putProfile(it, p) }
 }
