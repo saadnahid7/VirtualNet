@@ -1,0 +1,1 @@
+Fix reproducible build: scope.list line-ending correction for F-Droid verification.

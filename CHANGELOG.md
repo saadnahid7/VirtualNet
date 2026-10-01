@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5
+
+- Fix: reproducible build — convert scope.list line endings to LF so F-Droid verification passes.
+
 ## 1.0.4
 
 - Multiple network profiles: create, name, edit and delete as many profiles as you need.
